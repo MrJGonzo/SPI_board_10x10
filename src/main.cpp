@@ -25,6 +25,7 @@ const byte _74HC165_01 = 7;  // LATCH-- Entrada carga en paralelo. Conecta el pi
 * La conexion en serie de multiples 74LS165 se hace del pin 10 del primer Chip al pin 9 del siguiente Chip sucesivamente.
 */
 
+
 /*
 ******************************************** Variables globales ********************************************
 */
@@ -59,18 +60,107 @@ int output [pixels] =    {  0b0000000000000000,
                             0b0000000000000000 };
 
 
+int dataArr[size] = { 0b0000001111111111,
+                      0b0000001111111110, 
+                      0b0000001111111100,
+                      0b0000001111111000,
+                      0b0000001111110000,
+                      0b0000001111100000,
+                      0b0000001111000000,
+                      0b0000001110000000,
+                      0b0000001100000000,
+                      0b0000001000000000,
+                      0b0000000000000000 };
+
+const int sizeA = 11;
+
 byte input_A;
 String bitValue;
 
+int slaveSelectA = 7;
+int slaveSelectB = 6;
+int slaveSelectC = 5;
+int slaveSelectD = 4;
+
+int delayTime = 50;
+
 /*
-******************************************** Funciones de prueba ********************************************
+******************************************** Funciones Escritura ********************************************
 */
 
+void dataA()
+{
+    SPI.beginTransaction(SPISettings(14000000, MSBFIRST, SPI_MODE0));
+    digitalWrite(slaveSelectA, LOW);            //Write our Slave select low to enable the SHift register to begin listening for data
+    SPI.transfer16(dataArr[0]);
+    digitalWrite(slaveSelectA, HIGH);          //Once the transfer is complete, set the latch back to high to stop the shift register listening for data
+    delay(delayTime);
+    SPI.endTransaction();
+}
 
+void dataB()
+{
+    SPI.beginTransaction(SPISettings(14000000, MSBFIRST, SPI_MODE0));
+    digitalWrite(slaveSelectB, LOW);            //Write our Slave select low to enable the SHift register to begin listening for data
+    SPI.transfer16(dataArr[1]);
+    digitalWrite(slaveSelectB, HIGH);          //Once the transfer is complete, set the latch back to high to stop the shift register listening for data
+    delay(delayTime);
+    SPI.endTransaction();
+}
+
+void dataC()
+{
+    SPI.beginTransaction(SPISettings(14000000, MSBFIRST, SPI_MODE0));
+    digitalWrite(slaveSelectC, LOW);            //Write our Slave select low to enable the SHift register to begin listening for data
+    SPI.transfer16(dataArr[1]);
+    digitalWrite(slaveSelectC, HIGH);          //Once the transfer is complete, set the latch back to high to stop the shift register listening for data
+    delay(delayTime);
+    SPI.endTransaction();
+}
+
+void dataD()
+{
+    SPI.beginTransaction(SPISettings(14000000, MSBFIRST, SPI_MODE0));
+    digitalWrite(slaveSelectD, LOW);            //Write our Slave select low to enable the SHift register to begin listening for data
+    SPI.transfer16(dataArr[4]);
+    digitalWrite(slaveSelectD, HIGH);          //Once the transfer is complete, set the latch back to high to stop the shift register listening for data
+    delay(delayTime);
+    SPI.endTransaction();
+}
+
+
+
+void dataScan(int slave)
+{
+  for(int i = 0; i<11; i++)
+  {
+    SPI.beginTransaction(SPISettings(14000000, MSBFIRST, SPI_MODE0));
+    digitalWrite(slave, LOW);            //Write our Slave select low to enable the SHift register to begin listening for data
+    SPI.transfer16(dataArr[i]);
+    digitalWrite(slave, HIGH);          //Once the transfer is complete, set the latch back to high to stop the shift register listening for data
+    delay(delayTime);
+    SPI.endTransaction();
+  }
+
+}
+
+void dataScanInv(int slave)
+{
+  for(int i = 0; i<11; i++)
+  {
+    SPI.beginTransaction(SPISettings(14000000, MSBFIRST, SPI_MODE0));
+    digitalWrite(slave, LOW);            //Write our Slave select low to enable the SHift register to begin listening for data
+    SPI.transfer16(~dataArr[i]);
+    digitalWrite(slave, HIGH);          //Once the transfer is complete, set the latch back to high to stop the shift register listening for data
+    delay(delayTime);
+    SPI.endTransaction();
+  }
+
+}
 
 
 /*
-******************************************** Funciones revisadas ********************************************
+******************************************** Funciones Lectura ********************************************
 */
 
 // Lee y almacena el estado de cada valor entregado por los chips SPI a cada una las filas en el arreglo inputState
@@ -122,10 +212,6 @@ bool state [16] = { 0,0,0,0,0,0,0,0,0,0 };
 }
 
 
-
-
-
-
 /*
 ******************************************** Funciones ejecucion de Arduino ********************************************
 */
@@ -134,6 +220,8 @@ bool state [16] = { 0,0,0,0,0,0,0,0,0,0 };
 
 void setup ()
 {
+
+  //inicializacion Variables lectura
   SPI.begin ();
 
   Serial.begin (115200);
@@ -143,16 +231,37 @@ void setup ()
   pinMode (_74HC165_01, OUTPUT);
   digitalWrite (_74HC165_01, HIGH);
 
+  //Inicializacion Variables escritura
+  pinMode(slaveSelectA, OUTPUT);
+  pinMode(slaveSelectB, OUTPUT);
+  pinMode(slaveSelectC, OUTPUT);    
+  pinMode(slaveSelectD, OUTPUT);
 
+  SPI.setBitOrder(MSBFIRST); 
 }
  
 //funcion ciclica Arduino 
 void loop ()
 {
+    /*
+  * Lectura LEDS
+  */
   // Llamado a la funcion de lecto-escritura
   //readAndWrite();
   readStateSPI();
   readBitState();
   //printState();
+
+  /*
+  * Escritura LEDS
+  */
+  dataScanInv(slaveSelectA);
+  dataScan(slaveSelectB);
+  dataScanInv(slaveSelectB);  
+  dataScan(slaveSelectC);
+  dataScanInv(slaveSelectC);
+  dataScan(slaveSelectD);
+  dataScanInv(slaveSelectD); 
+
 
 } 
